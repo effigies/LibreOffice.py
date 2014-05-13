@@ -64,14 +64,14 @@ class Row(_odfIndexable):
         return super(Row, self).__getitem__(idx)
 
 
-class Sheet(_odfIndexable):
+class Table(_odfIndexable):
     tagName = u'table:table'
     childType = Row
     _odfType = staticmethod(odf.table.Table)
     cellPattern = re.compile(r'^([A-Z]+)(\d+)$')
 
     def __repr__(self):
-        return '<Sheet: {}>'.format(self.name)
+        return '<Table: {}>'.format(self.name)
 
     @property
     def name(self):
@@ -83,14 +83,6 @@ class Sheet(_odfIndexable):
             value = value.decode('utf-8')
         self._element.setAttribute("name", value)
 
-    @property
-    def rows(self):
-        return self._element.getElementsByType(odf.table.TableRow)
-
-    @property
-    def columns(self):
-        return self._element.getElementsByType(odf.table.TableColumn)
-
     def __getitem__(self, idx):
 
         # Allow indexing by cell name (e.g. E10)
@@ -101,11 +93,11 @@ class Sheet(_odfIndexable):
                 col, row = test.groups()
                 return self[int(row) - 1, col]
         
-        return super(Sheet, self).__getitem__(idx)
+        return super(Table, self).__getitem__(idx)
 
 
 class Spreadsheet(_odfIndexable):
-    childType = Sheet
+    childType = Table
 
     def __init__(self, path):
         self.path = path
@@ -120,10 +112,13 @@ class Spreadsheet(_odfIndexable):
 
         self._element = self._document.spreadsheet
 
+    def __len__(self):
+        return len(self.tables)
+
     def save(self):
         self._document.save(self.path)
 
     @property
-    def sheets(self):
-        return map(Sheet, self._document.spreadsheet.getElementsByType(
+    def tables(self):
+        return map(Table, self._document.spreadsheet.getElementsByType(
             odf.table.Table))
