@@ -14,19 +14,30 @@ class _odfObject(object):
     Subclasses should define:
     * _odfType  - a static method with the element type they wrap
     * tagName   - unicode string containing element tagName to compare against
-    * childType - class of children, if __getitem__ is to be used
     """
     def __init__(self, element):
         assert element.tagName == self.tagName
         self._element = element
 
+
+class _odfIndexable(_odfObject):
+    """Abstract class for wrappers with known child types
+
+    Subclasses should define:
+    * childType - class of children, if __getitem__ is to be used
+    """
     def __getitem__(self, idx):
         children = self._element.getElementsByType(self.childType._odfType)
         if isinstance(idx, tuple):
+            sub = idx[1]
             if len(idx) > 2:
-                return self[idx[0]][idx[1:]]
+                sub = idx[1:]
 
-            return self[idx[0]][idx[1]]
+            if isinstance(idx[0], slice):
+                return [self.childType(child)[sub]
+                        for child in children[idx[0]]]
+
+            return self[idx[0]][sub]
 
         if isinstance(idx, slice):
             return map(self.childType, children[idx])
@@ -39,7 +50,7 @@ class Cell(_odfObject):
     tagName = u'table:table-cell'
 
 
-class Row(_odfObject):
+class Row(_odfIndexable):
     childType = Cell
     _odfType = staticmethod(odf.table.TableRow)
     tagName = u'table:table-row'
@@ -53,7 +64,7 @@ class Row(_odfObject):
         return super(Row, self).__getitem__(idx)
 
 
-class Sheet(_odfObject):
+class Sheet(_odfIndexable):
     tagName = u'table:table'
     childType = Row
     _odfType = staticmethod(odf.table.Table)
@@ -93,7 +104,9 @@ class Sheet(_odfObject):
         return super(Sheet, self).__getitem__(idx)
 
 
-class Spreadsheet(object):
+class Spreadsheet(_odfIndexable):
+    childType = Sheet
+
     def __init__(self, path):
         self.path = path
 
@@ -104,6 +117,8 @@ class Spreadsheet(object):
             self._document = odf.opendocument.load(self.path)
         else:
             self._document = odf.opendocument.OpenDocumentSpreadsheet()
+
+        self._element = self._document.spreadsheet
 
     def save(self):
         self._document.save(self.path)
