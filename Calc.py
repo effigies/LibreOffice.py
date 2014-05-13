@@ -8,6 +8,16 @@ import odf.table
 import odf.text
 
 
+def columnIDtoIndex(col):
+    numerals = [ord(char) - ord('A') for char in col]
+    idx, nums = numerals[0], numerals[1:]
+
+    for num in nums:
+        idx = 26 * (idx + 1) + num
+
+    return idx
+
+
 class _odfObject(object):
     """Abstract class for odf.element.Element wrappers
     
@@ -57,10 +67,13 @@ class Row(_odfIndexable):
 
     def __getitem__(self, idx):
         # Allow indexing by letter
-        # Slicing by letter not implemented
-        if isinstance(idx, str):
-            idx = reduce(lambda x, y: 26 * (x + 1) + y,
-                         (ord(x) - ord('A') for x in idx))
+        if isinstance(idx, basestring):
+            bounds = map(columnIDtoIndex, idx.split(":"))
+            if len(bounds) == 1:
+                idx = bounds[0]
+            else:
+                idx = slice(bounds[0], bounds[1] + 1)
+
         return super(Row, self).__getitem__(idx)
 
 
@@ -84,14 +97,20 @@ class Table(_odfIndexable):
         self._element.setAttribute("name", value)
 
     def __getitem__(self, idx):
-
         # Allow indexing by cell name (e.g. E10)
-        # Slicing by cell names not implemented
-        if isinstance(idx, str):
-            test = self.cellPattern.match(idx)
-            if test:
-                col, row = test.groups()
-                return self[int(row) - 1, col]
+        if isinstance(idx, basestring):
+            bounds = map(self.cellPattern.match, idx.split(':'))
+
+            # Get top left coordinates
+            col, row = bounds.pop(0).groups()
+            idx = (int(row) - 1, columnIDtoIndex(col))
+
+            # Get bottom-left coordinates
+            if bounds:
+                col, row = bounds[0].groups()
+                # Slicing excludes the upper bound
+                idx = (slice(idx[0], int(row)),
+                       slice(idx[1], columnIDtoIndex(col) + 1))
         
         return super(Table, self).__getitem__(idx)
 
