@@ -60,13 +60,20 @@ class Cell(_odfObject):
     tagName = u'table:table-cell'
 
     @property
-    def type(self):
+    def valueType(self):
         return self._element.attributes.get(
             (u'urn:oasis:names:tc:opendocument:xmlns:office:1.0',
              u'value-type'))
 
     @property
     def value(self):
+        if self.valueType == u'date':
+            return self._element.attributes.get(
+                (u'urn:oasis:names:tc:opendocument:xmlns:office:1.0',
+                 u'date-value'))
+        elif self.valueType == u'string':
+            return self._element.childNodes[0].childNodes[0].data
+
         return self._element.attributes.get(
             (u'urn:oasis:names:tc:opendocument:xmlns:office:1.0',
              u'value'))
