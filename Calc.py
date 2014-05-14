@@ -59,6 +59,27 @@ class Cell(_odfObject):
     _odfType = staticmethod(odf.table.TableCell)
     tagName = u'table:table-cell'
 
+    @property
+    def type(self):
+        return self._element.attributes.get(
+            (u'urn:oasis:names:tc:opendocument:xmlns:office:1.0',
+             u'value-type'))
+
+    @property
+    def value(self):
+        return self._element.attributes.get(
+            (u'urn:oasis:names:tc:opendocument:xmlns:office:1.0',
+             u'value'))
+
+    @property
+    def formula(self):
+        return self._element.attributes.get(
+            (u'urn:oasis:names:tc:opendocument:xmlns:table:1.0',
+             u'formula'))
+
+    def __repr__(self):
+        return '<Cell: {}>'.format(self.formula or self.value)
+
 
 class Row(_odfIndexable):
     childType = Cell
