@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 #
 # 2014 Christopher J Johnson
+"""Interface to ODS documents"""
+
 import os
 import re
 import odf.opendocument
@@ -9,18 +11,22 @@ import odf.text
 
 
 def columnIDtoIndex(col):
-    numerals = [ord(char) - ord('A') for char in col]
+    """Calc columns are in base 26, 1-indexed
+
+    Convert to integer, 0-indexed"""
+    zero = ord('A') - 1
+    numerals = [ord(char) - zero for char in col]
     idx, nums = numerals[0], numerals[1:]
 
     for num in nums:
-        idx = 26 * (idx + 1) + num
+        idx = 26 * idx + num
 
-    return idx
+    return idx - 1
 
 
 class _odfObject(object):
     """Abstract class for odf.element.Element wrappers
-    
+
     Subclasses should define:
     * _odfType  - a static method with the element type they wrap
     * tagName   - unicode string containing element tagName to compare against
@@ -139,7 +145,7 @@ class Table(_odfIndexable):
                 # Slicing excludes the upper bound
                 idx = (slice(idx[0], int(row)),
                        slice(idx[1], columnIDtoIndex(col) + 1))
-        
+
         return super(Table, self).__getitem__(idx)
 
 
